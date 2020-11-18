@@ -1,0 +1,69 @@
+diff --git a/src/tools.cpp b/src/tools.cpp
+index d3b1513..dc303ad 100644
+--- a/src/tools.cpp
++++ b/src/tools.cpp
+@@ -239,8 +239,8 @@ generate_key_image(const crypto::key_derivation& derivation,
+ string
+ get_default_lmdb_folder(cryptonote::network_type nettype)
+ {
+-    // default path to monero folder
+-    // on linux this is /home/<username>/.bitmonero
++    // default path to haven folder
++    // on linux this is /home/<username>/.haven
+     string default_monero_dir = tools::get_default_data_dir();
+ 
+     if (nettype == cryptonote::network_type::TESTNET)
+@@ -345,7 +345,7 @@ sum_money_in_outputs(const json& _json)
+ array<uint64_t, 4>
+ summary_of_in_out_rct(
+         const transaction& tx,
+-        vector<pair<txout_to_key, uint64_t>>& output_pub_keys,
++        vector<pair<txout_target_v, uint64_t>>& output_pub_keys,
+         vector<txin_to_key>& input_key_imgs)
+ {
+ 
+@@ -357,12 +357,7 @@ summary_of_in_out_rct(
+ 
+     for (const tx_out& txout: tx.vout)
+     {
+-        if (txout.target.type() != typeid(txout_to_key))
+-        {
+-            // push empty pair.
+-            output_pub_keys.push_back(pair<txout_to_key, uint64_t>{});
+-            continue;
+-        }
++      if (txout.target.type() == typeid(txout_to_key)) {
+ 
+         // get tx input key
+         const txout_to_key& txout_key
+@@ -370,7 +365,21 @@ summary_of_in_out_rct(
+ 
+         output_pub_keys.push_back(make_pair(txout_key, txout.amount));
+ 
+-        xmr_outputs += txout.amount;
++      } else if (txout.target.type() == typeid(txout_offshore)) {
++
++        // get tx input key
++        const txout_offshore& txout_key
++	  = (txout_offshore&) boost::get<cryptonote::txout_offshore>(txout.target);
++
++        output_pub_keys.push_back(make_pair(txout_key, txout.amount));
++
++      } else {
++	// push empty pair.
++	output_pub_keys.push_back(pair<txout_to_key, uint64_t>{});
++	continue;
++      }
++
++      xmr_outputs += txout.amount;
+     }
+ 
+     size_t input_no = tx.vin.size();
+@@ -937,6 +946,7 @@ decode_ringct(rct::rctSig const& rv,
+             case rct::RCTTypeSimple:
+             case rct::RCTTypeBulletproof:
+             case rct::RCTTypeBulletproof2:
++	    case rct::RCTTypeCLSAG:
+                 amount = rct::decodeRctSimple(rv,
+                                               rct::sk2rct(scalar1),
+                                               i,

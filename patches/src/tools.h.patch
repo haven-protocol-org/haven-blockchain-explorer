@@ -1,0 +1,13 @@
+diff --git a/src/tools.h b/src/tools.h
+index 10df3d8..63c479b 100644
+--- a/src/tools.h
++++ b/src/tools.h
+@@ -154,7 +154,7 @@ sum_money_in_outputs(const json& _json);
+ array<uint64_t, 4>
+ summary_of_in_out_rct(
+         const transaction& tx,
+-        vector<pair<txout_to_key, uint64_t>>& output_pub_keys,
++        vector<pair<txout_target_v, uint64_t>>& output_pub_keys,
+         vector<txin_to_key>& input_key_imgs);
+ 
+ // this version for mempool txs from json

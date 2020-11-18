@@ -1,0 +1,22 @@
+diff --git a/src/templates/css/style.css b/src/templates/css/style.css
+index ac4336b..3ec5037 100644
+--- a/src/templates/css/style.css
++++ b/src/templates/css/style.css
+@@ -22,6 +22,10 @@ tr, li, #pages, .info {
+     height: 22px;
+ }
+ 
++tr:hover {
++    background-color: darkgray;
++}
++
+ #pages
+ {
+     margin-top: 15px;
+@@ -138,4 +142,4 @@ div#decoded-inputs{
+ /* Toggled State */
+ input#toggle-1[type=checkbox]:checked ~ div#decoded-inputs {
+     display: block;
+-}
+\ No newline at end of file
++}

@@ -1,0 +1,548 @@
+diff --git a/src/page.h b/src/page.h
+index a148821..c0ddeca 100644
+--- a/src/page.h
++++ b/src/page.h
+@@ -50,6 +50,7 @@
+ #define TMPL_FOOTER                 TMPL_DIR "/footer.html"
+ #define TMPL_BLOCK                  TMPL_DIR "/block.html"
+ #define TMPL_TX                     TMPL_DIR "/tx.html"
++#define TMPL_SUPPLY                 TMPL_DIR "/supply.html"
+ #define TMPL_ADDRESS                TMPL_DIR "/address.html"
+ #define TMPL_MY_OUTPUTS             TMPL_DIR "/my_outputs.html"
+ #define TMPL_SEARCH_RESULTS         TMPL_DIR "/search_results.html"
+@@ -274,7 +275,7 @@ struct tx_details
+     vector<txin_to_key> input_key_imgs;
+ 
+     // public keys and xmr amount of outputs
+-    vector<pair<txout_to_key, uint64_t>> output_pub_keys;
++    vector<pair<txout_target_v, uint64_t>> output_pub_keys;
+ 
+     mstch::map
+     get_mstch_map() const
+@@ -459,7 +460,7 @@ public:
+ 
+ page(MicroCore* _mcore,
+      Blockchain* _core_storage,
+-     string _deamon_url,
++     string _daemon_url,
+      cryptonote::network_type _nettype,
+      bool _enable_pusher,
+      bool _enable_js,
+@@ -478,7 +479,7 @@ page(MicroCore* _mcore,
+      string _mainnet_url)
+         : mcore {_mcore},
+           core_storage {_core_storage},
+-          rpc {_deamon_url},
++          rpc {_daemon_url},
+           server_timestamp {std::time(nullptr)},
+           nettype {_nettype},
+           enable_pusher {_enable_pusher},
+@@ -518,6 +519,7 @@ page(MicroCore* _mcore,
+     template_file["mempool_full"]    = get_full_page(template_file["mempool"]);
+     template_file["block"]           = get_full_page(xmreg::read(TMPL_BLOCK));
+     template_file["tx"]              = get_full_page(xmreg::read(TMPL_TX));
++    template_file["supply"]          = get_full_page(xmreg::read(TMPL_SUPPLY));
+     template_file["my_outputs"]      = get_full_page(xmreg::read(TMPL_MY_OUTPUTS));
+     template_file["rawtx"]           = get_full_page(xmreg::read(TMPL_MY_RAWTX));
+     template_file["checkrawtx"]      = get_full_page(xmreg::read(TMPL_MY_CHECKRAWTX));
+@@ -603,9 +605,9 @@ index2(uint64_t page_no = 0, bool refresh_page = false)
+ {
+ 
+     // we get network info, such as current hash rate
+-    // but since this makes a rpc call to deamon, we make it as an async
++    // but since this makes a rpc call to daemon, we make it as an async
+     // call. this way we dont have to wait with execution of the rest of the
+-    // index2 method, until deamon gives as the required result.
++    // index2 method, until daemon gives as the required result.
+     std::future<json> network_info_ftr = std::async(std::launch::async, [&]
+     {
+         json j_info;
+@@ -1015,6 +1017,35 @@ index2(uint64_t page_no = 0, bool refresh_page = false)
+     return mstch::render(template_file["index2"], context);
+ }
+ 
++
++/**
++ * Render the circulating supply information
++ */
++string
++circulating_supply()
++{
++  mstch::map context {};
++  context.emplace("currencies" , mstch::array());
++
++  // get reference to supply map to be field below
++  mstch::array& supply_map = boost::get<mstch::array>(context["currencies"]);
++  vector<pair<string, int64_t>> supply = CurrentBlockchainStatus::get_circulating_supply();
++    for (auto currency: supply) {
++      cerr << currency.first << ":" << currency.second << endl;
++      supply_map.push_back(mstch::map {
++	  {"currency_label", currency.first},
++	  {"amount", xmr_amount_to_str(currency.second, "{:0.3f}")}
++	});
++    }
++    
++    // this is when mempool is on its own page, /mempool
++    add_css_style(context);
++    
++    // render the page
++    return mstch::render(template_file["supply"], context);
++}
++
++
+ /**
+  * Render mempool data
+  */
+@@ -2154,7 +2185,7 @@ show_my_outputs(string tx_hash_str,
+ 
+     if (xmr_address_str.empty())
+     {
+-        return string("Monero address not provided!");
++        return string("Haven address not provided!");
+     }
+ 
+     if (viewkey_str.empty())
+@@ -2438,7 +2469,7 @@ show_my_outputs(string tx_hash_str,
+ 
+     uint64_t output_idx {0};
+ 
+-    for (pair<txout_to_key, uint64_t>& outp: txd.output_pub_keys)
++    for (pair<txout_target_v, uint64_t>& outp: txd.output_pub_keys)
+     {
+ 
+         // get the tx output public key
+@@ -2458,7 +2489,12 @@ show_my_outputs(string tx_hash_str,
+ 
+ 
+         // check if generated public key matches the current output's key
+-        bool mine_output = (outp.first.key == tx_pubkey);
++	crypto::public_key out_key;
++	if (outp.first.type() == typeid(txout_to_key))
++	  out_key = boost::get<cryptonote::txout_to_key>(outp.first).key;
++	else if (outp.first.type() == typeid(txout_offshore))
++	  out_key = boost::get<cryptonote::txout_offshore>(outp.first).key;
++        bool mine_output = (out_key == tx_pubkey);
+ 
+         bool with_additional = false;
+ 
+@@ -2471,13 +2507,13 @@ show_my_outputs(string tx_hash_str,
+                               tx_pubkey);
+ 
+ 
+-            mine_output = (outp.first.key == tx_pubkey);
++            mine_output = (out_key == tx_pubkey);
+ 
+             with_additional = true;
+         }
+ 
+         // if mine output has RingCT, i.e., tx version is 2
+-        if (mine_output && tx.version == 2)
++        if (mine_output && tx.version >= 2)
+         {
+             // cointbase txs have amounts in plain sight.
+             // so use amount from ringct, only for non-coinbase txs
+@@ -2513,11 +2549,16 @@ show_my_outputs(string tx_hash_str,
+             sum_xmr += outp.second;
+         }
+ 
++	std::string currency = (outp.first.type() == typeid(txout_to_key))
++	  ? "XHV"
++	  : (outp.first.type() == typeid(txout_offshore)) ? "xUSD" : "???";
++	
+         outputs.push_back(mstch::map {
+-                {"out_pub_key"           , pod_to_hex(outp.first.key)},
++                {"out_pub_key"           , pod_to_hex(out_key)},
+                 {"amount"                , xmreg::xmr_amount_to_str(outp.second)},
+                 {"mine_output"           , mine_output},
+-                {"output_idx"            , fmt::format("{:02d}", output_idx)}
++		{"output_idx"            , fmt::format("{:02d}", output_idx)},
++		{"currency"              , currency}
+         });
+ 
+         ++output_idx;
+@@ -2781,7 +2822,7 @@ show_my_outputs(string tx_hash_str,
+                 }
+ 
+ 
+-                if (mine_output && mixin_tx.version == 2)
++                if (mine_output && mixin_tx.version >= 2)
+                 {
+                     // cointbase txs have amounts in plain sight.
+                     // so use amount from ringct, only for non-coinbase txs
+@@ -2854,7 +2895,7 @@ show_my_outputs(string tx_hash_str,
+                         {
+                             sum_mixin_xmr += amount;
+                         }
+-                        else if (mixin_tx.version == 2) // ringct
++                        else if (mixin_tx.version >= 2) // ringct
+                         {
+                             sum_mixin_xmr += amount;
+                             ringct_amount += amount;
+@@ -3159,7 +3200,11 @@ show_checkrawtx(string raw_tx_data, string action)
+ 
+                     real_output_indices.push_back(tx_source.real_output);
+ 
+-                    public_key real_out_pub_key = real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.key;
++                    public_key real_out_pub_key;// HBD = real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.key;
++		    if (real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.type() == typeid(txout_to_key))
++		      real_out_pub_key = boost::get<cryptonote::txout_to_key>(real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first).key;
++		    else if (real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.type() == typeid(txout_offshore))
++		      real_out_pub_key = boost::get<cryptonote::txout_offshore>(real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first).key;
+ 
+                     //cout << "real_txd.hash: "    << pod_to_hex(real_txd.hash) << endl;
+                     //cout << "real_txd.pk: "      << pod_to_hex(real_txd.pk) << endl;
+@@ -3208,7 +3253,12 @@ show_checkrawtx(string raw_tx_data, string action)
+ 
+                         tx_details txd = get_tx_details(tx);
+ 
+-                        public_key out_pub_key = txd.output_pub_keys[toi.second].first.key;
++                        //public_key out_pub_key = txd.output_pub_keys[toi.second].first.key;
++			crypto::public_key out_pub_key;
++			if (txd.output_pub_keys[toi.second].first.type() == typeid(txout_to_key))
++			  out_pub_key = boost::get<cryptonote::txout_to_key>(txd.output_pub_keys[toi.second].first).key;
++			else if (txd.output_pub_keys[toi.second].first.type() == typeid(txout_offshore))
++			  out_pub_key = boost::get<cryptonote::txout_offshore>(txd.output_pub_keys[toi.second].first).key;
+ 
+ 
+                         // get block cointaining this tx
+@@ -3537,8 +3587,11 @@ show_checkrawtx(string raw_tx_data, string action)
+ 
+                 tx_details real_txd = get_tx_details(real_source_tx);
+ 
+-                public_key real_out_pub_key
+-                        = real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.key;
++		public_key real_out_pub_key;// HBD = real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.key;
++		if (real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.type() == typeid(txout_to_key))
++		  real_out_pub_key = boost::get<cryptonote::txout_to_key>(real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first).key;
++		else if (real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first.type() == typeid(txout_offshore))
++		  real_out_pub_key = boost::get<cryptonote::txout_offshore>(real_txd.output_pub_keys[tx_source.real_output_in_tx_index].first).key;
+ 
+                 real_output_pub_keys.push_back(
+                         REMOVE_HASH_BRAKETS(fmt::format("{:s}",real_out_pub_key))
+@@ -4194,7 +4247,9 @@ show_checkcheckrawoutput(string raw_data, string viewkey_str)
+                 {
+                     string error_msg = fmt::format(
+                             "Cant decode RingCT for output: {:s}",
+-                            txout_key.key);
++			    (txp.vout[td.m_internal_output_index].target.type() == typeid(txout_to_key) ?
++			     boost::get<txout_to_key>(txp.vout[td.m_internal_output_index].target).key :
++			     boost::get<txout_offshore>(txp.vout[td.m_internal_output_index].target).key));//txout_key.key);
+ 
+                     context["has_error"] = true;
+                     context["error_msg"] = error_msg;
+@@ -4225,13 +4280,16 @@ show_checkcheckrawoutput(string raw_data, string viewkey_str)
+         }
+ 
+         mstch::map output_info {
+-                {"output_no"           , fmt::format("{:03d}", output_no)},
+-                {"output_pub_key"      , REMOVE_HASH_BRAKETS(fmt::format("{:s}", txout_key.key))},
+-                {"amount"              , xmreg::xmr_amount_to_str(xmr_amount)},
++	  {"output_no"           , fmt::format("{:03d}", output_no)},
++	    {"output_pub_key"      , REMOVE_HASH_BRAKETS(fmt::format("{:s}",
++								     (txp.vout[td.m_internal_output_index].target.type() == typeid(txout_to_key) ?
++								      boost::get<txout_to_key>(txp.vout[td.m_internal_output_index].target).key :
++								      boost::get<txout_offshore>(txp.vout[td.m_internal_output_index].target).key)))},//txout_key.key))},
++	      {"amount"              , xmreg::xmr_amount_to_str(xmr_amount)},
+                 {"tx_hash"             , REMOVE_HASH_BRAKETS(fmt::format("{:s}", td.m_txid))},
+-                {"timestamp"           , xmreg::timestamp_to_str_gm(blk_timestamp)},
+-                {"is_spent"            , is_output_spent},
+-                {"is_ringct"           , td.m_rct}
++		  {"timestamp"           , xmreg::timestamp_to_str_gm(blk_timestamp)},
++		    {"is_spent"            , is_output_spent},
++		      {"is_ringct"           , td.m_rct}
+         };
+ 
+         ++output_no;
+@@ -4476,11 +4534,14 @@ search_txs(vector<transaction> txs, const string& search_text)
+ 
+         // check if output_public_keys matche the search_text
+ 
+-        vector<pair<txout_to_key, uint64_t>>::iterator it2 =
++        vector<pair<txout_target_v, uint64_t>>::iterator it2 =
+                 find_if(begin(txd.output_pub_keys), end(txd.output_pub_keys),
+-                        [&](const pair<txout_to_key, uint64_t>& tx_out_pk)
++                        [&](const pair<txout_target_v, uint64_t>& tx_out_pk)
+                         {
+-                            return pod_to_hex(tx_out_pk.first.key) == search_text;
++			  if (tx_out_pk.first.type() == typeid(txout_to_key))
++                            return pod_to_hex(boost::get<cryptonote::txout_to_key>(tx_out_pk.first).key) == search_text;
++			  else if (tx_out_pk.first.type() == typeid(txout_offshore))
++                            return pod_to_hex(boost::get<cryptonote::txout_offshore>(tx_out_pk.first).key) == search_text;
+                         });
+ 
+         if (it2 != txd.output_pub_keys.end())
+@@ -4709,8 +4770,13 @@ json_transaction(string tx_hash_str)
+ 
+     for (const auto& output: txd.output_pub_keys)
+     {
++	crypto::public_key out_key;
++	if (output.first.type() == typeid(txout_to_key))
++	  out_key = boost::get<cryptonote::txout_to_key>(output.first).key;
++	else if (output.first.type() == typeid(txout_offshore))
++	  out_key = boost::get<cryptonote::txout_offshore>(output.first).key;
+         outputs.push_back(json {
+-                {"public_key", pod_to_hex(output.first.key)},
++                {"public_key", pod_to_hex(out_key)},
+                 {"amount"    , output.second}
+         });
+     }
+@@ -5495,7 +5561,7 @@ json_outputs(string tx_hash_str,
+     if (address_str.empty())
+     {
+         j_response["status"]  = "error";
+-        j_response["message"] = "Monero address not provided";
++        j_response["message"] = "Haven address not provided";
+         return j_response;
+     }
+ 
+@@ -5532,7 +5598,7 @@ json_outputs(string tx_hash_str,
+     if (!xmreg::parse_str_address(address_str,  address_info, nettype))
+     {
+         j_response["status"]  = "error";
+-        j_response["message"] = "Cant parse monero address: " + address_str;
++        j_response["message"] = "Cant parse haven address: " + address_str;
+         return j_response;
+ 
+     }
+@@ -5601,7 +5667,7 @@ json_outputs(string tx_hash_str,
+     j_data["outputs"] = json::array();
+     json& j_outptus   = j_data["outputs"];
+ 
+-    for (pair<txout_to_key, uint64_t>& outp: txd.output_pub_keys)
++    for (pair<txout_target_v, uint64_t>& outp: txd.output_pub_keys)
+     {
+ 
+         // get the tx output public key
+@@ -5615,7 +5681,12 @@ json_outputs(string tx_hash_str,
+                           tx_pubkey);
+ 
+         // check if generated public key matches the current output's key
+-        bool mine_output = (outp.first.key == tx_pubkey);
++	crypto::public_key out_key;
++	if (outp.first.type() == typeid(txout_to_key))
++	  out_key = boost::get<cryptonote::txout_to_key>(outp.first).key;
++	else if (outp.first.type() == typeid(txout_offshore))
++	  out_key = boost::get<cryptonote::txout_offshore>(outp.first).key;
++        bool mine_output = (out_key == tx_pubkey);
+         bool with_additional = false;
+         if (!mine_output && txd.additional_pks.size() == txd.output_pub_keys.size())
+         {
+@@ -5623,12 +5694,12 @@ json_outputs(string tx_hash_str,
+                               output_idx,
+                               address_info.address.m_spend_public_key,
+                               tx_pubkey);
+-            mine_output = (outp.first.key == tx_pubkey);
++	    mine_output = (out_key == tx_pubkey);
+             with_additional = true;
+         }
+ 
+         // if mine output has RingCT, i.e., tx version is 2
+-        if (mine_output && tx.version == 2)
++        if (mine_output && tx.version >= 2)
+         {
+             // cointbase txs have amounts in plain sight.
+             // so use amount from ringct, only for non-coinbase txs
+@@ -5659,7 +5730,7 @@ json_outputs(string tx_hash_str,
+         }  // if (mine_output && tx.version == 2)
+ 
+         j_outptus.push_back(json {
+-                {"output_pubkey", pod_to_hex(outp.first.key)},
++                {"output_pubkey", pod_to_hex(out_key)},
+                 {"amount"       , outp.second},
+                 {"match"        , mine_output},
+                 {"output_idx"   , output_idx},
+@@ -5720,7 +5791,7 @@ json_outputsblocks(string _limit,
+     if (address_str.empty())
+     {
+         j_response["status"]  = "error";
+-        j_response["message"] = "Monero address not provided";
++        j_response["message"] = "Haven address not provided";
+         return j_response;
+     }
+ 
+@@ -5737,7 +5808,7 @@ json_outputsblocks(string _limit,
+     if (!xmreg::parse_str_address(address_str, address_info, nettype))
+     {
+         j_response["status"]  = "error";
+-        j_response["message"] = "Cant parse monero address: " + address_str;
++        j_response["message"] = "Cant parse haven address: " + address_str;
+         return j_response;
+ 
+     }
+@@ -5886,7 +5957,7 @@ json_networkinfo()
+     if (!get_monero_network_info(j_info))
+     {
+         j_response["status"]  = "error";
+-        j_response["message"] = "Cant get monero network info";
++        j_response["message"] = "Cant get haven network info";
+         return j_response;
+     }
+ 
+@@ -5957,6 +6028,55 @@ json_emission()
+ }
+ 
+ 
++
++/*
++ * Lets use this json api convention for success and error
++ * https://labs.omniti.com/labs/jsend
++ */
++ json
++   json_circulating()
++ {
++   json j_response
++   {
++     {"status", "fail"},
++     {"data",   json {}}
++   };
++
++   json& j_data = j_response["data"];
++
++   json j_info;
++   string tmp;
++   // get basic network info
++   if (!CurrentBlockchainStatus::is_thread_running())
++     {
++       j_data["title"] = "Emission monitoring thread not enabled.";
++       return j_response;
++     }
++ else
++   {
++     CurrentBlockchainStatus::Emission current_values
++       = CurrentBlockchainStatus::get_emission();
++
++     string emission_blk_no   = std::to_string(current_values.blk_no - 1);
++     string emission_coinbase = xmr_amount_to_str(current_values.coinbase, "{:0.3f}");
++     string emission_fee      = xmr_amount_to_str(current_values.fee, "{:0.4f}", false);
++     tmp=emission_coinbase;
++             j_data = json {
++
++                {"circulating", emission_coinbase},
++
++        };
++
++   }
++
++ j_response["status"]  = "success";
++
++ // return j_response;
++ return tmp;
++}
++
++
++
+ /*
+       * Lets use this json api convention for success and error
+       * https://labs.omniti.com/labs/jsend
+@@ -6062,7 +6182,7 @@ find_our_outputs(
+         //j_data["outputs"] = json::array();
+         //json& j_outptus   = j_data["outputs"];
+ 
+-        for (pair<txout_to_key, uint64_t> &outp: txd.output_pub_keys)
++        for (pair<txout_target_v, uint64_t> &outp: txd.output_pub_keys)
+         {
+ 
+             // get the tx output public key
+@@ -6076,7 +6196,16 @@ find_our_outputs(
+                               tx_pubkey);
+ 
+             // check if generated public key matches the current output's key
+-            bool mine_output = (outp.first.key == tx_pubkey);
++	    crypto::public_key out_key;
++	    string currency_str;
++	    if (outp.first.type() == typeid(txout_to_key)) {
++	      out_key = boost::get<cryptonote::txout_to_key>(outp.first).key;
++	      currency_str = "XHV";
++	    } else if (outp.first.type() == typeid(txout_offshore)) {
++	      out_key = boost::get<cryptonote::txout_offshore>(outp.first).key;
++	      currency_str = "xUSD";
++	    }
++	    bool mine_output = (out_key == tx_pubkey);
+             bool with_additional = false;
+             if (!mine_output && txd.additional_pks.size() == txd.output_pub_keys.size())
+             {
+@@ -6084,12 +6213,12 @@ find_our_outputs(
+                                   output_idx,
+                                   address.m_spend_public_key,
+                                   tx_pubkey);
+-                mine_output = (outp.first.key == tx_pubkey);
++		mine_output = (out_key == tx_pubkey);
+                 with_additional = true;
+             }
+ 
+             // if mine output has RingCT, i.e., tx version is 2
+-            if (mine_output && tx.version == 2)
++            if (mine_output && tx.version >= 2)
+             {
+                 // cointbase txs have amounts in plain sight.
+                 // so use amount from ringct, only for non-coinbase txs
+@@ -6128,13 +6257,14 @@ find_our_outputs(
+                 string payment_id_str = get_payment_id_as_string(txd, prv_view_key);
+ 
+                 j_outptus.push_back(json {
+-                        {"output_pubkey" , pod_to_hex(outp.first.key)},
++                        {"output_pubkey" , pod_to_hex(out_key)},
+                         {"amount"        , outp.second},
+                         {"block_no"      , block_no},
+                         {"in_mempool"    , is_mempool},
+                         {"output_idx"    , output_idx},
+                         {"tx_hash"       , pod_to_hex(txd.hash)},
+-                        {"payment_id"    , payment_id_str}
++                        {"payment_id"    , payment_id_str},
++			{"currency"      , currency_str}
+                 });
+             }
+ 
+@@ -6654,8 +6784,11 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+     mstch::array outputs;
+ 
+     uint64_t outputs_xmr_sum {0};
++    uint64_t outputs_xusd_sum {0};
+ 
+-    for (pair<txout_to_key, uint64_t>& outp: txd.output_pub_keys)
++    cerr << "HBD : got " << txd.output_pub_keys.size() << " output keys" << endl;
++    
++    for (pair<txout_target_v, uint64_t>& outp: txd.output_pub_keys)
+     {
+ 
+         // total number of ouputs in the blockchain for this amount
+@@ -6672,20 +6805,34 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+                     = std::to_string(out_amount_indices.at(output_idx));
+         }
+ 
+-        outputs_xmr_sum += outp.second;
+-
+-        outputs.push_back(mstch::map {
+-                {"out_pub_key"           , pod_to_hex(outp.first.key)},
++	crypto::public_key out_key;
++	std::string currency;
++	if (outp.first.type() == typeid(txout_to_key)) {
++	  outputs_xmr_sum += outp.second;
++	  out_key = boost::get<cryptonote::txout_to_key>(outp.first).key;
++	  currency = "XHV";
++	} else if (outp.first.type() == typeid(txout_offshore)) {
++	  outputs_xusd_sum += outp.second;
++	  out_key = boost::get<cryptonote::txout_offshore>(outp.first).key;
++	  currency = "xUSD";
++	}
++	
++	outputs.push_back(mstch::map {
++                {"out_pub_key"           , pod_to_hex(out_key)},
+                 {"amount"                , xmreg::xmr_amount_to_str(outp.second)},
+                 {"amount_idx"            , out_amount_index_str},
+                 {"num_outputs"           , num_outputs_amount},
+                 {"unformated_output_idx" , output_idx},
+-                {"output_idx"            , fmt::format("{:02d}", output_idx++)}
++		{"output_idx"            , fmt::format("{:02d}", output_idx++)},
++		{"currency"              , currency}
+         });
+ 
++	cerr << "\tkey = " << pod_to_hex(out_key) << "\n\tamount = " << xmreg::xmr_amount_to_str(outp.second) << endl;
++	
+     } //  for (pair<txout_to_key, uint64_t>& outp: txd.output_pub_keys)
+ 
+     context["outputs_xmr_sum"] = xmreg::xmr_amount_to_str(outputs_xmr_sum);
++    context["outputs_xusd_sum"] = xmreg::xmr_amount_to_str(outputs_xusd_sum);
+ 
+     context.emplace("outputs", outputs);
+ 

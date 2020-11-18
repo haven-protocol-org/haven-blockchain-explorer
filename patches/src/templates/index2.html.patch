@@ -1,0 +1,13 @@
+diff --git a/src/templates/index2.html b/src/templates/index2.html
+index 8e6f96c..84153e8 100644
+--- a/src/templates/index2.html
++++ b/src/templates/index2.html
+@@ -55,7 +55,7 @@
+ 
+     {{#emission}}
+         <h3 style="font-size: 12px; margin-top: 2px">
+-            Monero emission (fees) is {{amount}} ({{fee_amount}}) as of {{blk_no}} block
++            Haven emission (fees) is {{amount}} ({{fee_amount}}) as of block {{blk_no}} (<a href="/supply">Circulating Supply</a>)
+         </h3>
+     {{/emission}}
+ 
