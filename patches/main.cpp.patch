@@ -48,9 +48,9 @@ index 8e969b9..a262061 100644
 -            = deamon_url;
 +    xmreg::MempoolStatus::daemon_url
 +            = daemon_url;
+     xmreg::MempoolStatus::login
+             = daemon_rpc_login;
      xmreg::MempoolStatus::set_blockchain_variables(
-             &mcore, core_storage);
- 
 @@ -299,7 +299,7 @@ main(int ac, const char* av[])
      // contains logic for the website
      xmreg::page xmrblocks(&mcore,
@@ -59,7 +59,7 @@ index 8e969b9..a262061 100644
 +                          daemon_url,
                            nettype,
                            enable_pusher,
-                           enable_js,
+                           enable_randomx,
 @@ -329,6 +329,11 @@ main(int ac, const char* av[])
          return myxmr::htmlresponse(xmrblocks.index2());
      });

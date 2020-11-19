@@ -11,7 +11,8 @@ fi
 # Reset onion monero code to HEAD
 pushd onion-monero-blockchain-explorer > /dev/null 2>&1
 git checkout -b master
-git reset a3bef31ed6bd73e78102340ba587cfba4a94826f --hard
+#git reset a3bef31ed6bd73e78102340ba587cfba4a94826f --hard
+git reset HEAD --hard
 popd > /dev/null 2>&1
 
 # Apply patches / whole files to the monero codebase
