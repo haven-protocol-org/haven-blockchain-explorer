@@ -1,9 +1,11 @@
-@@ -8,24 +8,24 @@ namespace xmreg
+@@ -8,27 +8,27 @@ namespace xmreg
  {
  
  
--rpccalls::rpccalls(string _deamon_url,
-+rpccalls::rpccalls(string _daemon_url,
+ rpccalls::rpccalls(
+-         string _deamon_url,
++         string _daemon_url,
+          login_opt login,
           uint64_t _timeout)
 -        : deamon_url {_deamon_url},
 +        : daemon_url {_daemon_url},
@@ -19,7 +21,8 @@
      m_http_client.set_server(
 -            deamon_url,
 +            daemon_url,
-             boost::optional<epee::net_utils::http::login>{}, epee::net_utils::ssl_support_t::e_ssl_support_disabled);
+             login,
+             epee::net_utils::ssl_support_t::e_ssl_support_disabled);
  }
  
  bool
@@ -28,7 +31,7 @@
  {
      //std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
-@@ -45,9 +45,9 @@ rpccalls::get_current_height()
+@@ -48,9 +48,9 @@ rpccalls::get_current_height()
  
      std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -40,7 +43,7 @@
          return false;
      }
  
-@@ -57,8 +57,8 @@ rpccalls::get_current_height()
+@@ -60,8 +60,8 @@ rpccalls::get_current_height()
  
      if (!r)
      {
@@ -51,7 +54,7 @@
          return 0;
      }
  
-@@ -77,9 +77,9 @@ rpccalls::get_mempool(vector<tx_info>& mempool_txs)
+@@ -80,9 +80,9 @@ rpccalls::get_mempool(vector<tx_info>& mempool_txs)
      {
          std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -63,7 +66,7 @@
              return false;
          }
  
-@@ -90,8 +90,8 @@ rpccalls::get_mempool(vector<tx_info>& mempool_txs)
+@@ -93,8 +93,8 @@ rpccalls::get_mempool(vector<tx_info>& mempool_txs)
  
      if (!r || res.status != CORE_RPC_STATUS_OK)
      {
@@ -74,7 +77,7 @@
          return false;
      }
  
-@@ -124,9 +124,9 @@ rpccalls::commit_tx(tools::wallet2::pending_tx& ptx, string& error_msg)
+@@ -127,9 +127,9 @@ rpccalls::commit_tx(tools::wallet2::pending_tx& ptx, string& error_msg)
  
      std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -86,7 +89,7 @@
          return false;
      }
  
-@@ -163,9 +163,9 @@ rpccalls::get_network_info(COMMAND_RPC_GET_INFO::response& response)
+@@ -166,9 +166,9 @@ rpccalls::get_network_info(COMMAND_RPC_GET_INFO::response& response)
      {
          std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -98,7 +101,7 @@
              return false;
          }
  
-@@ -189,15 +189,15 @@ rpccalls::get_network_info(COMMAND_RPC_GET_INFO::response& response)
+@@ -192,15 +192,15 @@ rpccalls::get_network_info(COMMAND_RPC_GET_INFO::response& response)
  
          if (!err.empty())
          {
@@ -117,7 +120,7 @@
          return false;
      }
  
-@@ -223,9 +223,9 @@ rpccalls::get_hardfork_info(COMMAND_RPC_HARD_FORK_INFO::response& response)
+@@ -226,9 +226,9 @@ rpccalls::get_hardfork_info(COMMAND_RPC_HARD_FORK_INFO::response& response)
      {
          std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -129,7 +132,7 @@
              return false;
          }
  
-@@ -250,15 +250,15 @@ rpccalls::get_hardfork_info(COMMAND_RPC_HARD_FORK_INFO::response& response)
+@@ -253,15 +253,15 @@ rpccalls::get_hardfork_info(COMMAND_RPC_HARD_FORK_INFO::response& response)
  
          if (!err.empty())
          {
@@ -148,7 +151,7 @@
          return false;
      }
  
-@@ -291,9 +291,9 @@ rpccalls::get_dynamic_per_kb_fee_estimate(
+@@ -294,9 +294,9 @@ rpccalls::get_dynamic_per_kb_fee_estimate(
      {
          std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -160,7 +163,7 @@
              return false;
          }
  
-@@ -318,15 +318,15 @@ rpccalls::get_dynamic_per_kb_fee_estimate(
+@@ -321,15 +321,15 @@ rpccalls::get_dynamic_per_kb_fee_estimate(
  
          if (!err.empty())
          {
@@ -179,7 +182,7 @@
          return false;
      }
  
-@@ -354,9 +354,9 @@ rpccalls::get_block(string const& blk_hash, block& blk, string& error_msg)
+@@ -357,9 +357,9 @@ rpccalls::get_block(string const& blk_hash, block& blk, string& error_msg)
      {
          std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
  
@@ -191,7 +194,7 @@
              return false;
          }
  
-@@ -381,15 +381,15 @@ rpccalls::get_block(string const& blk_hash, block& blk, string& error_msg)
+@@ -384,15 +384,15 @@ rpccalls::get_block(string const& blk_hash, block& blk, string& error_msg)
  
          if (!err.empty())
          {

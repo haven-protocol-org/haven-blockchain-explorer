@@ -1,4 +1,4 @@
-@@ -128,7 +128,7 @@ struct MempoolStatus
+@@ -125,7 +125,7 @@ struct MempoolStatus
      static atomic<uint64_t> mempool_size; // size in bytes.
  
      static bf::path blockchain_path;
@@ -6,4 +6,4 @@
 +    static string daemon_url;
      static cryptonote::network_type nettype;
  
-     // make object for accessing the blockchain here
+     static rpccalls::login_opt login;

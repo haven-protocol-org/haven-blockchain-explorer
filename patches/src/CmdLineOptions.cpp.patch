@@ -7,7 +7,7 @@
  
          desc.add_options()
                  ("help,h", value<bool>()->default_value(false)->implicit_value(true),
-@@ -50,7 +50,7 @@ namespace xmreg
+@@ -44,7 +44,7 @@ namespace xmreg
                  ("enable-autorefresh-option", value<bool>()->default_value(false)->implicit_value(true),
                   "enable users to have the index page on autorefresh")
                  ("enable-emission-monitor", value<bool>()->default_value(false)->implicit_value(true),
@@ -16,7 +16,7 @@
                  ("port,p", value<string>()->default_value("8081"),
                   "default explorer port")
                  ("bindaddr,x", value<string>()->default_value("0.0.0.0"),
-@@ -70,13 +70,13 @@ namespace xmreg
+@@ -64,15 +64,15 @@ namespace xmreg
                  ("concurrency,c", value<size_t>()->default_value(0),
                   "number of threads handling http queries. Default is 0 which means it is based you on the cpu")
                  ("bc-path,b", value<string>(),
@@ -26,8 +26,10 @@
                   "path to crt file for ssl (https) functionality")
                  ("ssl-key-file", value<string>(),
                   "path to key file for ssl (https) functionality")
+                 ("daemon-login", value<string>(),
+                  "Specify username[:password] for daemon RPC client")
 -                ("deamon-url,d", value<string>()->default_value("http:://127.0.0.1:18081"),
--                 "Monero deamon url");
+-                 "Monero daemon url");
 +                ("daemon-url,d", value<string>()->default_value("http:://127.0.0.1:17750"),
 +                 "Haven daemon url");
  

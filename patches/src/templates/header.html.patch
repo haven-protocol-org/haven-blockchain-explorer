@@ -1,3 +1,5 @@
+--- a/src/templates/header.html
++++ b/src/templates/header.html
 @@ -7,7 +7,7 @@
      {{#refresh}}
          <meta http-equiv="refresh" content="10">
@@ -7,12 +9,12 @@
      <!--<link rel="stylesheet" type="text/css" href="/css/style.css">-->
      <style type="text/css">
          {{#css_styles}}{{/css_styles}}
-@@ -20,7 +20,7 @@
+@@ -18,7 +18,7 @@
  <div>
  
      <div class="center">
 -        <h1 class="center"><a href="/">Onion Monero Blockchain Explorer</a></h1>
 +        <h1 class="center"><a href="/">Haven Blockchain Explorer</a></h1>
-         <h4 style="font-size: 15px; margin: 0px">({{^enable_js}}no javascript - {{/enable_js}}no cookies - no web analytics trackers - no images - open sourced)</h4>
+         <h4 style="font-size: 15px; margin: 0px">(no javascript - no cookies - no web analytics trackers - no images - open sourced)</h4>
      </div>
  
