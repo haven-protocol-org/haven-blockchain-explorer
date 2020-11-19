@@ -2,7 +2,7 @@ diff --git a/main.cpp b/main.cpp
 index 8e969b9..a262061 100644
 --- a/main.cpp
 +++ b/main.cpp
-@@ -55,7 +55,7 @@ main(int ac, const char* av[])
+@@ -56,7 +56,7 @@ main(int ac, const char* av[])
      auto port_opt                      = opts.get_option<string>("port");
      auto bindaddr_opt                  = opts.get_option<string>("bindaddr");
      auto bc_path_opt                   = opts.get_option<string>("bc-path");
@@ -11,7 +11,7 @@ index 8e969b9..a262061 100644
      auto ssl_crt_file_opt              = opts.get_option<string>("ssl-crt-file");
      auto ssl_key_file_opt              = opts.get_option<string>("ssl-key-file");
      auto no_blocks_on_index_opt        = opts.get_option<string>("no-blocks-on-index");
-@@ -181,12 +181,12 @@ main(int ac, const char* av[])
+@@ -205,12 +205,12 @@ main(int ac, const char* av[])
          return EXIT_FAILURE;
      }
  
@@ -29,7 +29,7 @@ index 8e969b9..a262061 100644
  
      uint64_t mempool_info_timeout {5000};
  
-@@ -223,8 +223,8 @@ main(int ac, const char* av[])
+@@ -247,8 +247,8 @@ main(int ac, const char* av[])
                  = blockchain_path;
          xmreg::CurrentBlockchainStatus::nettype
                  = nettype;
@@ -40,7 +40,7 @@ index 8e969b9..a262061 100644
          xmreg::CurrentBlockchainStatus::set_blockchain_variables(
                  &mcore, core_storage);
  
-@@ -240,8 +240,8 @@ main(int ac, const char* av[])
+@@ -264,8 +264,8 @@ main(int ac, const char* av[])
              = blockchain_path;
      xmreg::MempoolStatus::nettype
              = nettype;
@@ -51,7 +51,7 @@ index 8e969b9..a262061 100644
      xmreg::MempoolStatus::set_blockchain_variables(
              &mcore, core_storage);
  
-@@ -273,7 +273,7 @@ main(int ac, const char* av[])
+@@ -299,7 +299,7 @@ main(int ac, const char* av[])
      // contains logic for the website
      xmreg::page xmrblocks(&mcore,
                            core_storage,
@@ -60,7 +60,7 @@ index 8e969b9..a262061 100644
                            nettype,
                            enable_pusher,
                            enable_js,
-@@ -305,6 +305,11 @@ main(int ac, const char* av[])
+@@ -329,6 +329,11 @@ main(int ac, const char* av[])
          return myxmr::htmlresponse(xmrblocks.index2());
      });
  
@@ -72,7 +72,7 @@ index 8e969b9..a262061 100644
      CROW_ROUTE(app, "/page/<uint>")
      ([&](size_t page_no) {
          return myxmr::htmlresponse(xmrblocks.index2(page_no));
-@@ -763,6 +768,14 @@ main(int ac, const char* av[])
+@@ -753,6 +753,14 @@ main(int ac, const char* av[])
              return r;
          });
  
