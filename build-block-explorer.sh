@@ -28,8 +28,8 @@ find * -type f | while read line ; do
     if [[ ${line: -6} == ".patch" ]]; then
         patchfile=$line
         filename=${patchfile//\.patch/}
-        dstfilename="../onion-monero-blockchain-explorer/$filename"
-        echo "Applying patch file $patchfile for target $dstfilename";
+        dstfilename="`dirname $PWD`/onion-monero-blockchain-explorer/$filename"
+        # echo "Applying patch file $patchfile for target $dstfilename";
         patch -p0 $dstfilename < $patchfile
     else
         dstfilename="../onion-monero-blockchain-explorer/$line"
