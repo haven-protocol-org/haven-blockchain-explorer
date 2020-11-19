@@ -2,15 +2,15 @@ diff --git a/src/page.h b/src/page.h
 index a148821..c0ddeca 100644
 --- a/src/page.h
 +++ b/src/page.h
-@@ -50,6 +50,7 @@
- #define TMPL_FOOTER                 TMPL_DIR "/footer.html"
+@@ -64,6 +64,7 @@
  #define TMPL_BLOCK                  TMPL_DIR "/block.html"
+ #define TMPL_RANDOMX                TMPL_DIR "/randomx.html"
  #define TMPL_TX                     TMPL_DIR "/tx.html"
 +#define TMPL_SUPPLY                 TMPL_DIR "/supply.html"
  #define TMPL_ADDRESS                TMPL_DIR "/address.html"
  #define TMPL_MY_OUTPUTS             TMPL_DIR "/my_outputs.html"
  #define TMPL_SEARCH_RESULTS         TMPL_DIR "/search_results.html"
-@@ -274,7 +275,7 @@ struct tx_details
+@@ -336,7 +336,7 @@ struct tx_details
      vector<txin_to_key> input_key_imgs;
  
      // public keys and xmr amount of outputs
@@ -19,7 +19,7 @@ index a148821..c0ddeca 100644
  
      mstch::map
      get_mstch_map() const
-@@ -459,7 +460,7 @@ public:
+@@ -498,7 +498,7 @@ public:
  
  page(MicroCore* _mcore,
       Blockchain* _core_storage,
@@ -27,25 +27,25 @@ index a148821..c0ddeca 100644
 +     string _daemon_url,
       cryptonote::network_type _nettype,
       bool _enable_pusher,
-      bool _enable_js,
-@@ -478,7 +479,7 @@ page(MicroCore* _mcore,
-      string _mainnet_url)
+      bool _enable_randomx,
+@@ -515,7 +515,7 @@ page(MicroCore* _mcore,
+      rpccalls::login_opt _daemon_rpc_login)
          : mcore {_mcore},
            core_storage {_core_storage},
--          rpc {_deamon_url},
-+          rpc {_daemon_url},
+-          rpc {_deamon_url, _daemon_rpc_login},
++          rpc {_daemon_url, _daemon_rpc_login},
            server_timestamp {std::time(nullptr)},
            nettype {_nettype},
            enable_pusher {_enable_pusher},
-@@ -518,6 +519,7 @@ page(MicroCore* _mcore,
-     template_file["mempool_full"]    = get_full_page(template_file["mempool"]);
+@@ -551,6 +551,7 @@ page(MicroCore* _mcore,
      template_file["block"]           = get_full_page(xmreg::read(TMPL_BLOCK));
+     template_file["randomx"]         = get_full_page(xmreg::read(TMPL_RANDOMX));
      template_file["tx"]              = get_full_page(xmreg::read(TMPL_TX));
 +    template_file["supply"]          = get_full_page(xmreg::read(TMPL_SUPPLY));
      template_file["my_outputs"]      = get_full_page(xmreg::read(TMPL_MY_OUTPUTS));
      template_file["rawtx"]           = get_full_page(xmreg::read(TMPL_MY_RAWTX));
      template_file["checkrawtx"]      = get_full_page(xmreg::read(TMPL_MY_CHECKRAWTX));
-@@ -603,9 +605,9 @@ index2(uint64_t page_no = 0, bool refresh_page = false)
+@@ -577,9 +577,9 @@ index2(uint64_t page_no = 0, bool refresh_page = false)
  {
  
      // we get network info, such as current hash rate
@@ -57,7 +57,7 @@ index a148821..c0ddeca 100644
      std::future<json> network_info_ftr = std::async(std::launch::async, [&]
      {
          json j_info;
-@@ -1015,6 +1017,35 @@ index2(uint64_t page_no = 0, bool refresh_page = false)
+@@ -848,6 +848,35 @@ index2(uint64_t page_no = 0, bool refresh_page = false)
      return mstch::render(template_file["index2"], context);
  }
  
@@ -93,7 +93,7 @@ index a148821..c0ddeca 100644
  /**
   * Render mempool data
   */
-@@ -2154,7 +2185,7 @@ show_my_outputs(string tx_hash_str,
+@@ -1900,7 +1900,7 @@ show_my_outputs(string tx_hash_str,
  
      if (xmr_address_str.empty())
      {
@@ -102,7 +102,7 @@ index a148821..c0ddeca 100644
      }
  
      if (viewkey_str.empty())
-@@ -2438,7 +2469,7 @@ show_my_outputs(string tx_hash_str,
+@@ -2184,7 +2184,7 @@ show_my_outputs(string tx_hash_str,
  
      uint64_t output_idx {0};
  
@@ -111,7 +111,7 @@ index a148821..c0ddeca 100644
      {
  
          // get the tx output public key
-@@ -2458,7 +2489,12 @@ show_my_outputs(string tx_hash_str,
+@@ -2204,7 +2204,12 @@ show_my_outputs(string tx_hash_str,
  
  
          // check if generated public key matches the current output's key
@@ -125,7 +125,7 @@ index a148821..c0ddeca 100644
  
          bool with_additional = false;
  
-@@ -2471,13 +2507,13 @@ show_my_outputs(string tx_hash_str,
+@@ -2217,13 +2217,13 @@ show_my_outputs(string tx_hash_str,
                                tx_pubkey);
  
  
@@ -141,7 +141,7 @@ index a148821..c0ddeca 100644
          {
              // cointbase txs have amounts in plain sight.
              // so use amount from ringct, only for non-coinbase txs
-@@ -2513,11 +2549,16 @@ show_my_outputs(string tx_hash_str,
+@@ -2259,11 +2259,16 @@ show_my_outputs(string tx_hash_str,
              sum_xmr += outp.second;
          }
  
@@ -160,7 +160,7 @@ index a148821..c0ddeca 100644
          });
  
          ++output_idx;
-@@ -2781,7 +2822,7 @@ show_my_outputs(string tx_hash_str,
+@@ -2527,7 +2527,7 @@ show_my_outputs(string tx_hash_str,
                  }
  
  
@@ -169,7 +169,7 @@ index a148821..c0ddeca 100644
                  {
                      // cointbase txs have amounts in plain sight.
                      // so use amount from ringct, only for non-coinbase txs
-@@ -2854,7 +2895,7 @@ show_my_outputs(string tx_hash_str,
+@@ -2600,7 +2600,7 @@ show_my_outputs(string tx_hash_str,
                          {
                              sum_mixin_xmr += amount;
                          }
@@ -178,7 +178,7 @@ index a148821..c0ddeca 100644
                          {
                              sum_mixin_xmr += amount;
                              ringct_amount += amount;
-@@ -3159,7 +3200,11 @@ show_checkrawtx(string raw_tx_data, string action)
+@@ -2903,7 +2903,11 @@ show_checkrawtx(string raw_tx_data, string action)
  
                      real_output_indices.push_back(tx_source.real_output);
  
@@ -191,7 +191,7 @@ index a148821..c0ddeca 100644
  
                      //cout << "real_txd.hash: "    << pod_to_hex(real_txd.hash) << endl;
                      //cout << "real_txd.pk: "      << pod_to_hex(real_txd.pk) << endl;
-@@ -3208,7 +3253,12 @@ show_checkrawtx(string raw_tx_data, string action)
+@@ -2952,7 +2952,12 @@ show_checkrawtx(string raw_tx_data, string action)
  
                          tx_details txd = get_tx_details(tx);
  
@@ -205,7 +205,7 @@ index a148821..c0ddeca 100644
  
  
                          // get block cointaining this tx
-@@ -3537,8 +3587,11 @@ show_checkrawtx(string raw_tx_data, string action)
+@@ -3279,8 +3279,11 @@ show_checkrawtx(string raw_tx_data, string action)
  
                  tx_details real_txd = get_tx_details(real_source_tx);
  
@@ -219,7 +219,7 @@ index a148821..c0ddeca 100644
  
                  real_output_pub_keys.push_back(
                          REMOVE_HASH_BRAKETS(fmt::format("{:s}",real_out_pub_key))
-@@ -4194,7 +4247,9 @@ show_checkcheckrawoutput(string raw_data, string viewkey_str)
+@@ -3936,7 +3936,9 @@ show_checkcheckrawoutput(string raw_data, string viewkey_str)
                  {
                      string error_msg = fmt::format(
                              "Cant decode RingCT for output: {:s}",
@@ -230,7 +230,7 @@ index a148821..c0ddeca 100644
  
                      context["has_error"] = true;
                      context["error_msg"] = error_msg;
-@@ -4225,13 +4280,16 @@ show_checkcheckrawoutput(string raw_data, string viewkey_str)
+@@ -3967,13 +3967,16 @@ show_checkcheckrawoutput(string raw_data, string viewkey_str)
          }
  
          mstch::map output_info {
@@ -253,7 +253,7 @@ index a148821..c0ddeca 100644
          };
  
          ++output_no;
-@@ -4476,11 +4534,14 @@ search_txs(vector<transaction> txs, const string& search_text)
+@@ -4218,11 +4218,14 @@ search_txs(vector<transaction> txs, const string& search_text)
  
          // check if output_public_keys matche the search_text
  
@@ -271,7 +271,7 @@ index a148821..c0ddeca 100644
                          });
  
          if (it2 != txd.output_pub_keys.end())
-@@ -4709,8 +4770,13 @@ json_transaction(string tx_hash_str)
+@@ -4451,8 +4451,13 @@ json_transaction(string tx_hash_str)
  
      for (const auto& output: txd.output_pub_keys)
      {
@@ -286,7 +286,7 @@ index a148821..c0ddeca 100644
                  {"amount"    , output.second}
          });
      }
-@@ -5495,7 +5561,7 @@ json_outputs(string tx_hash_str,
+@@ -5232,7 +5232,7 @@ json_outputs(string tx_hash_str,
      if (address_str.empty())
      {
          j_response["status"]  = "error";
@@ -295,7 +295,7 @@ index a148821..c0ddeca 100644
          return j_response;
      }
  
-@@ -5532,7 +5598,7 @@ json_outputs(string tx_hash_str,
+@@ -5269,7 +5269,7 @@ json_outputs(string tx_hash_str,
      if (!xmreg::parse_str_address(address_str,  address_info, nettype))
      {
          j_response["status"]  = "error";
@@ -304,7 +304,7 @@ index a148821..c0ddeca 100644
          return j_response;
  
      }
-@@ -5601,7 +5667,7 @@ json_outputs(string tx_hash_str,
+@@ -5338,7 +5338,7 @@ json_outputs(string tx_hash_str,
      j_data["outputs"] = json::array();
      json& j_outptus   = j_data["outputs"];
  
@@ -313,7 +313,7 @@ index a148821..c0ddeca 100644
      {
  
          // get the tx output public key
-@@ -5615,7 +5681,12 @@ json_outputs(string tx_hash_str,
+@@ -5352,7 +5352,12 @@ json_outputs(string tx_hash_str,
                            tx_pubkey);
  
          // check if generated public key matches the current output's key
@@ -327,7 +327,7 @@ index a148821..c0ddeca 100644
          bool with_additional = false;
          if (!mine_output && txd.additional_pks.size() == txd.output_pub_keys.size())
          {
-@@ -5623,12 +5694,12 @@ json_outputs(string tx_hash_str,
+@@ -5360,12 +5360,12 @@ json_outputs(string tx_hash_str,
                                output_idx,
                                address_info.address.m_spend_public_key,
                                tx_pubkey);
@@ -342,7 +342,7 @@ index a148821..c0ddeca 100644
          {
              // cointbase txs have amounts in plain sight.
              // so use amount from ringct, only for non-coinbase txs
-@@ -5659,7 +5730,7 @@ json_outputs(string tx_hash_str,
+@@ -5396,7 +5396,7 @@ json_outputs(string tx_hash_str,
          }  // if (mine_output && tx.version == 2)
  
          j_outptus.push_back(json {
@@ -351,7 +351,7 @@ index a148821..c0ddeca 100644
                  {"amount"       , outp.second},
                  {"match"        , mine_output},
                  {"output_idx"   , output_idx},
-@@ -5720,7 +5791,7 @@ json_outputsblocks(string _limit,
+@@ -5467,7 +5467,7 @@ json_outputsblocks(string _limit,
      if (address_str.empty())
      {
          j_response["status"]  = "error";
@@ -360,7 +360,7 @@ index a148821..c0ddeca 100644
          return j_response;
      }
  
-@@ -5737,7 +5808,7 @@ json_outputsblocks(string _limit,
+@@ -5484,7 +5484,7 @@ json_outputsblocks(string _limit,
      if (!xmreg::parse_str_address(address_str, address_info, nettype))
      {
          j_response["status"]  = "error";
@@ -369,7 +369,7 @@ index a148821..c0ddeca 100644
          return j_response;
  
      }
-@@ -5886,7 +5957,7 @@ json_networkinfo()
+@@ -5633,7 +5633,7 @@ json_networkinfo()
      if (!get_monero_network_info(j_info))
      {
          j_response["status"]  = "error";
@@ -378,7 +378,7 @@ index a148821..c0ddeca 100644
          return j_response;
      }
  
-@@ -5957,6 +6028,55 @@ json_emission()
+@@ -5733,6 +5733,55 @@ json_emission()
  }
  
  
@@ -434,7 +434,7 @@ index a148821..c0ddeca 100644
  /*
        * Lets use this json api convention for success and error
        * https://labs.omniti.com/labs/jsend
-@@ -6062,7 +6182,7 @@ find_our_outputs(
+@@ -5809,7 +5809,7 @@ find_our_outputs(
          //j_data["outputs"] = json::array();
          //json& j_outptus   = j_data["outputs"];
  
@@ -443,7 +443,7 @@ index a148821..c0ddeca 100644
          {
  
              // get the tx output public key
-@@ -6076,7 +6196,16 @@ find_our_outputs(
+@@ -5823,7 +5283,16 @@ find_our_outputs(
                                tx_pubkey);
  
              // check if generated public key matches the current output's key
@@ -461,12 +461,12 @@ index a148821..c0ddeca 100644
              bool with_additional = false;
              if (!mine_output && txd.additional_pks.size() == txd.output_pub_keys.size())
              {
-@@ -6084,12 +6213,12 @@ find_our_outputs(
+@@ -5831,12 +5831,12 @@ find_our_outputs(
                                    output_idx,
                                    address.m_spend_public_key,
                                    tx_pubkey);
 -                mine_output = (outp.first.key == tx_pubkey);
-+		mine_output = (out_key == tx_pubkey);
++		 mine_output = (out_key == tx_pubkey);
                  with_additional = true;
              }
  
@@ -476,7 +476,7 @@ index a148821..c0ddeca 100644
              {
                  // cointbase txs have amounts in plain sight.
                  // so use amount from ringct, only for non-coinbase txs
-@@ -6128,13 +6257,14 @@ find_our_outputs(
+@@ -5875,13 +5875,14 @@ find_our_outputs(
                  string payment_id_str = get_payment_id_as_string(txd, prv_view_key);
  
                  j_outptus.push_back(json {
@@ -493,7 +493,7 @@ index a148821..c0ddeca 100644
                  });
              }
  
-@@ -6654,8 +6784,11 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6396,8 +6396,11 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
      mstch::array outputs;
  
      uint64_t outputs_xmr_sum {0};
@@ -506,7 +506,7 @@ index a148821..c0ddeca 100644
      {
  
          // total number of ouputs in the blockchain for this amount
-@@ -6672,20 +6805,34 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6414,20 +6414,34 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
                      = std::to_string(out_amount_indices.at(output_idx));
          }
  

@@ -59,11 +59,3 @@ index d3b1513..dc303ad 100644
      }
  
      size_t input_no = tx.vin.size();
-@@ -937,6 +946,7 @@ decode_ringct(rct::rctSig const& rv,
-             case rct::RCTTypeSimple:
-             case rct::RCTTypeBulletproof:
-             case rct::RCTTypeBulletproof2:
-+	    case rct::RCTTypeCLSAG:
-                 amount = rct::decodeRctSimple(rv,
-                                               rct::sk2rct(scalar1),
-                                               i,
