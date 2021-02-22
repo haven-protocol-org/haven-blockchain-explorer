@@ -43,9 +43,9 @@ echo "Creating build folder..."
 mkdir onion-monero-blockchain-explorer/build
 pushd onion-monero-blockchain-explorer/build > /dev/null 2>&1
 
-echo "Monero dir is $PWD/../../../haven-offshore/monero"
+echo "Monero dir is $PWD/../../../monero"
 echo "Building blockchain explorer..."
-cmake -DMONERO_DIR=$PWD/../../../haven-offshore/monero ..
+cmake -DMONERO_DIR=$PWD/../../../monero ..
 make
 
 popd > /dev/null 2>&1
