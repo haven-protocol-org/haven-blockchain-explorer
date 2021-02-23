@@ -1,5 +1,5 @@
 diff --git a/src/MempoolStatus.cpp b/src/MempoolStatus.cpp
-index 4c18fca..b3da984 100644
+index b55b312..e5ad3d1 100644
 --- a/src/MempoolStatus.cpp
 +++ b/src/MempoolStatus.cpp
 @@ -96,7 +96,7 @@ MempoolStatus::start_mempool_status_thread()
@@ -11,8 +11,12 @@ index 4c18fca..b3da984 100644
  
      string error_msg;
  
-@@ -170,7 +170,7 @@ MempoolStatus::read_mempool()
-         vector<txin_to_key> input_key_imgs;
+@@ -167,10 +167,10 @@ MempoolStatus::read_mempool()
+         last_tx.tx = tx;
+ 
+         // key images of inputs
+-        vector<txin_to_key> input_key_imgs;
++        vector<txin_v> input_key_imgs;
  
          // public keys and xmr amount of outputs
 -        vector<pair<txout_to_key, uint64_t>> output_pub_keys;
