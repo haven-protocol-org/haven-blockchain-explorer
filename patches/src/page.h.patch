@@ -1,5 +1,5 @@
 diff --git a/src/page.h b/src/page.h
-index 77a047c..d5a0b70 100644
+index 77a047c..b527337 100644
 --- a/src/page.h
 +++ b/src/page.h
 @@ -64,6 +64,7 @@ extern  __thread randomx_vm *rx_vm;
@@ -1173,20 +1173,26 @@ index 77a047c..d5a0b70 100644
                  );
  
                  cerr << out_msg << endl;
-@@ -6396,8 +6683,11 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6396,8 +6683,16 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
      mstch::array outputs;
  
      uint64_t outputs_xmr_sum {0};
-+    uint64_t outputs_xusd_sum {0};
- 
+-
 -    for (pair<txout_to_key, uint64_t>& outp: txd.output_pub_keys)
++    bool has_xhv = false;
++    uint64_t outputs_xusd_sum {0};
++    bool has_xusd = false;
++    uint64_t outputs_xasset_sum {0};
++    bool has_xasset = false;
++    std::string out_xasset_type = "";
++
 +    cerr << "HBD : got " << txd.output_pub_keys.size() << " output keys" << endl;
 +    
 +    for (pair<txout_target_v, uint64_t>& outp: txd.output_pub_keys)
      {
  
          // total number of ouputs in the blockchain for this amount
-@@ -6414,20 +6704,40 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6414,20 +6709,49 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
                      = std::to_string(out_amount_indices.at(output_idx));
          }
  
@@ -1198,16 +1204,20 @@ index 77a047c..d5a0b70 100644
 +        std::string currency;
 +        if (outp.first.type() == typeid(txout_to_key)) {
 +            outputs_xmr_sum += outp.second;
++            has_xhv = true;
 +            out_key = boost::get<cryptonote::txout_to_key>(outp.first).key;
 +            currency = "XHV";
 +        } else if (outp.first.type() == typeid(txout_offshore)) {
 +            outputs_xusd_sum += outp.second;
++            has_xusd = true;
 +            out_key = boost::get<cryptonote::txout_offshore>(outp.first).key;
 +            currency = "xUSD";
 +        } else if (outp.first.type() == typeid(txout_xasset)) {
-+            outputs_xusd_sum += outp.second;
++            outputs_xasset_sum += outp.second;
++            has_xasset = true;
 +            out_key = boost::get<cryptonote::txout_xasset>(outp.first).key;
 +            currency = boost::get<cryptonote::txout_xasset>(outp.first).asset_type;
++            out_xasset_type = currency;
 +        }
 +        
 +        outputs.push_back(
@@ -1230,10 +1240,15 @@ index 77a047c..d5a0b70 100644
  
      context["outputs_xmr_sum"] = xmreg::xmr_amount_to_str(outputs_xmr_sum);
 +    context["outputs_xusd_sum"] = xmreg::xmr_amount_to_str(outputs_xusd_sum);
++    context["outputs_xasset_sum"] = xmreg::xmr_amount_to_str(outputs_xusd_sum);
++    context["out_xasset_type"] = out_xasset_type;
++    context["has_xhv"] = has_xhv;
++    context["has_xusd"] = has_xusd;
++    context["has_xasset"] = has_xasset;
  
      context.emplace("outputs", outputs);
  
-@@ -6536,7 +6846,35 @@ get_tx_details(const transaction& tx,
+@@ -6536,7 +6860,35 @@ get_tx_details(const transaction& tx,
          if (tx.vin.at(0).type() != typeid(txin_gen))
          {
              // get tx fee
@@ -1270,7 +1285,7 @@ index 77a047c..d5a0b70 100644
          }
      }
  
-@@ -6765,11 +7103,27 @@ get_dynamic_per_kb_fee_estimate(uint64_t& fee_estimated)
+@@ -6765,11 +7117,27 @@ get_dynamic_per_kb_fee_estimate(uint64_t& fee_estimated)
  bool
  are_absolute_offsets_good(
          std::vector<uint64_t> const& absolute_offsets,
@@ -1300,7 +1315,7 @@ index 77a047c..d5a0b70 100644
  
      bool offset_too_large {false};
  
-@@ -6783,9 +7137,9 @@ are_absolute_offsets_good(
+@@ -6783,9 +7151,9 @@ are_absolute_offsets_good(
          {
              offset_too_large = true;
              cerr << "Absolute offset (" << o << ") of an output in a key image "
