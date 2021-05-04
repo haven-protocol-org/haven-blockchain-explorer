@@ -1,5 +1,5 @@
 diff --git a/src/CurrentBlockchainStatus.cpp b/src/CurrentBlockchainStatus.cpp
-index 040f01d..ef38bcf 100644
+index 040f01d..75b6126 100644
 --- a/src/CurrentBlockchainStatus.cpp
 +++ b/src/CurrentBlockchainStatus.cpp
 @@ -32,7 +32,7 @@ CurrentBlockchainStatus::start_monitor_blockchain_thread()
@@ -11,6 +11,15 @@ index 040f01d..ef38bcf 100644
                   << "\nEmission monitoring thread is not started.\nDelete the file and"
                   << " restart the explorer or disable emission monitoring."
                   << endl;
+@@ -135,7 +135,7 @@ CurrentBlockchainStatus::calculate_emission_in_blocks(
+ 
+         mcore->get_block_by_height(start_blk, blk);
+ 
+-        uint64_t coinbase_amount = get_outs_money_amount(blk.miner_tx);
++        uint64_t coinbase_amount = get_outs_money_amount(blk.miner_tx)["XHV"];
+ 
+         vector<transaction> txs;
+         vector<crypto::hash> missed_txs;
 @@ -205,7 +205,7 @@ CurrentBlockchainStatus::load_current_emission_amount()
  
      if (strs.empty())

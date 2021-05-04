@@ -1,5 +1,5 @@
 diff --git a/src/templates/index2.html b/src/templates/index2.html
-index 8e6f96c..84153e8 100644
+index f2c6a4c..884080f 100644
 --- a/src/templates/index2.html
 +++ b/src/templates/index2.html
 @@ -55,7 +55,7 @@
@@ -11,3 +11,34 @@ index 8e6f96c..84153e8 100644
          </h3>
      {{/emission}}
  
+@@ -77,14 +77,14 @@
+ 
+             <table class="center">
+                 <tr>
+-                    <td>height</td>
+-                    <td>age {{age_format}}<!--(Δm)--></td>
+-                    <td>size [kB]<!--(Δm)--></td>
++                    <td>Block Height</td>
++                    <td>Block Age {{age_format}}<!--(Δm)--></td>
++                    <td>Block size [kB]<!--(Δm)--></td>
+                     <td>transaction hash</td>
+-                    <td>fee [&#181;&#x271]</td>
+-                    <td>outputs</td>
+-                    <td>in/out</td>
+-                    <td>tx size [kB]</td>
++                    <td>Tx Fee [&#181;&#x271]</td>
++                    <td>Tx Outputs</td>
++                    <td>TX in/out</td>
++                    <td>Tx size [kB]</td>
+                 </tr>
+                 {{#txs}}
+                 <tr>
+@@ -92,7 +92,7 @@
+                     <td>{{age}}<!--{{time_delta}}--></td>
+                     <td>{{blk_size}}</td>
+                     <td><a href="/tx/{{hash}}">{{hash}}</a></td>
+-                    <td>{{fee_micro}}</td>
++                    <td>{{tx_fee}}<small>{{fee_asset}}</small></td>
+                     <td>{{sum_outputs_short}}</td>
+                     <td>{{no_inputs}}/{{no_outputs}}</td>
+                     <td>{{tx_size_short}}</td>

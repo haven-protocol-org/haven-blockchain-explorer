@@ -1,13 +1,46 @@
-@@ -69,7 +69,7 @@
+diff --git a/src/templates/my_outputs.html b/src/templates/my_outputs.html
+index ea46014..5b5ac01 100644
+--- a/src/templates/my_outputs.html
++++ b/src/templates/my_outputs.html
+@@ -49,6 +49,7 @@
+                 <td>output public key</td>
+                 <td>amount</td>
+                 <td>output match?</td>
++                <td>currency</td>
+             </tr>
+             {{#outputs}}
+             <tr>
+@@ -64,13 +65,28 @@
+                 {{^mine_output}}
+                     <td>{{mine_output}}</td>
+                 {{/mine_output}}
++                <td>{{currency}}</td>
+             </tr>
+             {{/outputs}}
          </table>
  
          <h3>
 -            Sum XMR from matched outputs (i.e., incoming XMR):
-+            Sum XHV from matched outputs (i.e., incoming XHV):
++            Sum of amounts from matched outputs based on currency (i.e., incoming XHV):
              {{#found_our_outputs}}
++            <div class="center">
++                <table class="center" >
++                    <tr>
++                        <td>Currency</td>
++                        <td>Total Amount</td>
++                    </tr>
++                    {{#sum_currencies}}
++                    <tr>
++                        <td>{{currency}}</td>
++                        <td>{{amount}}</td>
++                    </tr>
++                    {{/sum_currencies}}
++                </table>
++            </div>
                  {{sum_xmr}}
              {{/found_our_outputs}}
-@@ -142,7 +142,7 @@
+             {{^found_our_outputs}}
+@@ -142,7 +158,7 @@
  
          </div>
          <h3>
@@ -16,7 +49,7 @@
              <br/>
              <span style="font-size: 16px"> Possible spending is:
                  {{possible_spending}} (tx fee included)
-@@ -155,7 +155,7 @@
+@@ -155,7 +171,7 @@
                 <br/>
                 <span style="font-size: 14px">
                   Number of possible our mixins is {{no_all_possible_mixins}}
