@@ -1,11 +1,12 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 2833d93..c481cbe 100644
+index 34ff718..db60843 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -148,6 +148,7 @@ set(LIBRARIES
+@@ -147,7 +147,7 @@ set(LIBRARIES
+         cryptonote_basic
          multisig
          daemonizer
-         blocks
+-        blocks
 +        offshore
          lmdb
          ringct
