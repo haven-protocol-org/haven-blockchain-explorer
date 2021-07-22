@@ -1,5 +1,5 @@
 diff --git a/src/page.h b/src/page.h
-index 77a047c..b527337 100644
+index 77a047c..07928c7 100644
 --- a/src/page.h
 +++ b/src/page.h
 @@ -64,6 +64,7 @@ extern  __thread randomx_vm *rx_vm;
@@ -10,6 +10,38 @@ index 77a047c..b527337 100644
  #define TMPL_ADDRESS                TMPL_DIR "/address.html"
  #define TMPL_MY_OUTPUTS             TMPL_DIR "/my_outputs.html"
  #define TMPL_SEARCH_RESULTS         TMPL_DIR "/search_results.html"
+@@ -105,19 +106,19 @@ struct HasSpanInGetOutputKeyT<
+ 
+ 
+ // primary template;
+-template<typename, typename = VoidT<>>
+-struct OutputIndicesReturnVectOfVectT : std::false_type 
+-{};
++// template<typename, typename = VoidT<>>
++// struct OutputIndicesReturnVectOfVectT : std::false_type 
++// {};
+ 
+-template<typename T>
+-struct OutputIndicesReturnVectOfVectT<
+-    T,
+-    VoidT<decltype(std::declval<T>()
+-            .get_tx_amount_output_indices(
+-                uint64_t{}, size_t{})
+-            .front().front())
+-    >>: std::true_type 
+-{};
++// template<typename T>
++// struct OutputIndicesReturnVectOfVectT<
++//     T,
++//     VoidT<decltype(std::declval<T>()
++//             .get_tx_amount_output_indices(
++//                 uint64_t{}, size_t{})
++//             .front().front())
++//     >>: std::true_type 
++// {};
+ 
+ 
+ /**
 @@ -333,10 +334,12 @@ struct tx_details
      std::vector<std::vector<crypto::signature>> signatures;
  
@@ -106,13 +138,13 @@ index 77a047c..b527337 100644
 +
 +  // get reference to supply map to be field below
 +  mstch::array& supply_map = boost::get<mstch::array>(context["currencies"]);
-+  vector<pair<string, int64_t>> supply = CurrentBlockchainStatus::get_circulating_supply();
++  vector<pair<string, string>> supply = CurrentBlockchainStatus::get_circulating_supply();
 +    for (auto currency: supply) {
-+      cerr << currency.first << ":" << currency.second << endl;
-+      supply_map.push_back(mstch::map {
-+	  {"currency_label", currency.first},
-+	  {"amount", xmr_amount_to_str(currency.second, "{:0.3f}")}
-+	});
++        cerr << currency.first << ":" << currency.second << endl;
++        supply_map.push_back(mstch::map {
++            {"currency_label", currency.first},
++            {"amount", atomic_units_to_normal(currency.second)}
++        });
 +    }
 +    
 +    // this is when mempool is on its own page, /mempool
@@ -980,10 +1012,10 @@ index 77a047c..b527337 100644
 +{
 +    std::string circulation_spply;
 +
-+    vector<pair<string, int64_t>> supply = CurrentBlockchainStatus::get_circulating_supply();
++    vector<pair<string, string>> supply = CurrentBlockchainStatus::get_circulating_supply();
 +    for(const auto& currency: supply) {
 +        if(currency.first == "XHV") {
-+            circulation_spply = xmr_amount_to_str(currency.second, "{:0.3f}");
++            circulation_spply = currency.second;
 +        }
 +    }
 +
@@ -1173,7 +1205,29 @@ index 77a047c..b527337 100644
                  );
  
                  cerr << out_msg << endl;
-@@ -6396,8 +6683,16 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6365,7 +6652,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+     context.emplace("inputs", inputs);
+ 
+     // get indices of outputs in amounts tables
+-    vector<uint64_t> out_amount_indices;
++    vector<vector<pair<uint64_t, uint64_t>>> out_amount_indices;
+ 
+     try
+     {
+@@ -6374,11 +6661,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+ 
+         if (core_storage->get_db().tx_exists(txd.hash, tx_index))
+         {
+-            //out_amount_indices = core_storage->get_db()
+-                    //.get_tx_amount_output_indices(tx_index).front();
+-            get_tx_amount_output_indices<BlockchainDB>(
+-                   out_amount_indices, 
+-                   tx_index);
++            get_tx_amount_output_indices(out_amount_indices, tx_index, 1);
+         }
+         else
+         {
+@@ -6396,8 +6679,16 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
      mstch::array outputs;
  
      uint64_t outputs_xmr_sum {0};
@@ -1192,8 +1246,16 @@ index 77a047c..b527337 100644
      {
  
          // total number of ouputs in the blockchain for this amount
-@@ -6414,20 +6709,49 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
-                     = std::to_string(out_amount_indices.at(output_idx));
+@@ -6408,26 +6699,55 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+ 
+         // outputs in tx in them mempool dont have yet global indices
+         // thus for them, we print N/A
+-        if (!out_amount_indices.empty())
++        if (!out_amount_indices.empty() && !out_amount_indices[0].empty())
+         {
+             out_amount_index_str
+-                    = std::to_string(out_amount_indices.at(output_idx));
++                    = std::to_string(out_amount_indices.front().at(output_idx).first);
          }
  
 -        outputs_xmr_sum += outp.second;
@@ -1248,7 +1310,7 @@ index 77a047c..b527337 100644
  
      context.emplace("outputs", outputs);
  
-@@ -6536,7 +6860,35 @@ get_tx_details(const transaction& tx,
+@@ -6536,7 +6856,35 @@ get_tx_details(const transaction& tx,
          if (tx.vin.at(0).type() != typeid(txin_gen))
          {
              // get tx fee
@@ -1285,7 +1347,7 @@ index 77a047c..b527337 100644
          }
      }
  
-@@ -6765,11 +7117,27 @@ get_dynamic_per_kb_fee_estimate(uint64_t& fee_estimated)
+@@ -6765,11 +7113,27 @@ get_dynamic_per_kb_fee_estimate(uint64_t& fee_estimated)
  bool
  are_absolute_offsets_good(
          std::vector<uint64_t> const& absolute_offsets,
@@ -1315,7 +1377,7 @@ index 77a047c..b527337 100644
  
      bool offset_too_large {false};
  
-@@ -6783,9 +7151,9 @@ are_absolute_offsets_good(
+@@ -6783,9 +7147,9 @@ are_absolute_offsets_good(
          {
              offset_too_large = true;
              cerr << "Absolute offset (" << o << ") of an output in a key image "
@@ -1327,3 +1389,37 @@ index 77a047c..b527337 100644
                   << " is too large. There are only "
                   << no_outputs << " such outputs!\n";
              continue;
+@@ -6945,23 +7309,19 @@ get_output_key(uint64_t amount, Args&&... args)
+           amount, std::forward<Args>(args)...);
+ }
+ 
+-template <typename T, typename... Args>
+-typename std::enable_if<
+-    !OutputIndicesReturnVectOfVectT<T>::value, void>::type
+-get_tx_amount_output_indices(vector<uint64_t>& out_amount_indices, Args&&... args)
++// template <typename T, typename... Args>
++void get_tx_amount_output_indices(vector<vector<pair<uint64_t, uint64_t>>>& out_amount_indices, uint64_t tx_index, size_t n_txs)
+ {
+-    out_amount_indices = core_storage->get_db()
+-       .get_tx_amount_output_indices(std::forward<Args>(args)...);
++    out_amount_indices = core_storage->get_db().get_tx_amount_output_indices(tx_index, n_txs);
+ }
+ 
+-template <typename T, typename... Args>
+-typename std::enable_if<
+-    OutputIndicesReturnVectOfVectT<T>::value, void>::type
+-get_tx_amount_output_indices(vector<uint64_t>& out_amount_indices, Args&&... args)
+-{
+-    out_amount_indices = core_storage->get_db()
+-       .get_tx_amount_output_indices(std::forward<Args>(args)...).front();
+-}
++// template <typename T, typename... Args>
++// typename std::enable_if<
++//     OutputIndicesReturnVectOfVectT<T>::value, void>::type
++// get_tx_amount_output_indices(vector<vector<pair<uint64_t, uint64_t>>>& out_amount_indices, Args&&... args)
++// {
++//     out_amount_indices = core_storage->get_db().get_tx_amount_output_indices(std::forward<Args>(args)...).front();
++// }
+ 
+ };
+ }

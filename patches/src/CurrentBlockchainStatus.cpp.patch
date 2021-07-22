@@ -1,5 +1,5 @@
 diff --git a/src/CurrentBlockchainStatus.cpp b/src/CurrentBlockchainStatus.cpp
-index 040f01d..75b6126 100644
+index 040f01d..5e1cfa3 100644
 --- a/src/CurrentBlockchainStatus.cpp
 +++ b/src/CurrentBlockchainStatus.cpp
 @@ -32,7 +32,7 @@ CurrentBlockchainStatus::start_monitor_blockchain_thread()
@@ -34,7 +34,7 @@ index 040f01d..75b6126 100644
  }
  
 -bf::path CurrentBlockchainStatus::blockchain_path {"/home/mwo/.bitmonero/lmdb"};
-+vector<pair<string, int64_t>>
++vector<pair<string, string>>
 +CurrentBlockchainStatus::get_circulating_supply()
 +{
 +  return core_storage->get_db().get_circulating_supply();

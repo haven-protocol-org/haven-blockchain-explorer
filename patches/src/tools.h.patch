@@ -1,5 +1,5 @@
 diff --git a/src/tools.h b/src/tools.h
-index d511e1b..4573782 100644
+index d511e1b..2dc101c 100644
 --- a/src/tools.h
 +++ b/src/tools.h
 @@ -154,8 +154,8 @@ sum_money_in_outputs(const json& _json);
@@ -22,3 +22,45 @@ index d511e1b..4573782 100644
  get_key_images(const transaction& tx);
  
  
+@@ -293,6 +293,41 @@ xmr_amount_to_str(const uint64_t& xmr_amount,
+ 
+     return amount_str;
+ }
++static
++string
++atomic_units_to_normal(const string number){
++    std::cout << "number: " << number << std::endl;
++    string amount_str = "";
++    if (number.size() > 12) {
++        auto temp = number.substr(0, number.size() - 12);
++        size_t n = 0;
++        for (int i = temp.size() - 1; i >= 0; i--) {
++            amount_str += temp[i];
++            if ((n % 3) == 2) {
++                amount_str += ",";
++            }
++            n++;
++        }
++        std::reverse(amount_str.begin(), amount_str.end());
++    } else if (number.size() == 12) {
++        amount_str += "0.";
++        amount_str += number[0];
++    } else {
++        auto diff = 12 - number.size();
++        amount_str = "0.";
++        for (size_t i = 0; i < diff; i++) {
++            amount_str += "0";
++        }
++        amount_str += number[0];
++    }
++
++    //scrap the comma in the beginning
++    if (amount_str[0] == ',') {
++        amount_str = amount_str.substr(1);
++    }
++
++    return amount_str;
++}
+ 
+ bool
+ is_output_ours(const size_t& output_index,
