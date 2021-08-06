@@ -1,5 +1,5 @@
 diff --git a/main.cpp b/main.cpp
-index 8e969b9..a262061 100644
+index 016363f..a6e148f 100644
 --- a/main.cpp
 +++ b/main.cpp
 @@ -56,7 +56,7 @@ main(int ac, const char* av[])
@@ -72,18 +72,28 @@ index 8e969b9..a262061 100644
      CROW_ROUTE(app, "/page/<uint>")
      ([&](size_t page_no) {
          return myxmr::htmlresponse(xmrblocks.index2(page_no));
-@@ -753,6 +753,14 @@ main(int ac, const char* av[])
+@@ -752,6 +757,24 @@ main(int ac, const char* av[])
+ 
              return r;
          });
- 
++        
++        // only for xhv for coinmarketcap
 +        CROW_ROUTE(app, "/api/circulating")
++        ([&]() {
++
++            myxmr::jsonresponse r{xmrblocks.json_circulating_xhv()};
++
++            return r;
++        });
++        
++        // supply for all assets
++        CROW_ROUTE(app, "/api/supply")
 +        ([&]() {
 +
 +            myxmr::jsonresponse r{xmrblocks.json_circulating()};
 +
 +            return r;
 +        });
-+
+ 
          CROW_ROUTE(app, "/api/outputs").methods("GET"_method)
          ([&](const crow::request &req) {
- 

@@ -1,5 +1,5 @@
 diff --git a/src/page.h b/src/page.h
-index 77a047c..53cb4c3 100644
+index 77a047c..f57f217 100644
 --- a/src/page.h
 +++ b/src/page.h
 @@ -64,6 +64,7 @@ extern  __thread randomx_vm *rx_vm;
@@ -998,17 +998,33 @@ index 77a047c..53cb4c3 100644
          return j_response;
      }
  
-@@ -5704,6 +5935,28 @@ json_emission()
+@@ -5703,6 +5934,41 @@ json_emission()
+     return j_response;
  }
  
- 
-+
 +/*
 + * Lets use this json api convention for success and error
 + * https://labs.omniti.com/labs/jsend
 + */
 +json
 +json_circulating()
++{
++    json j_response;
++    vector<pair<string, string>> supply = CurrentBlockchainStatus::get_circulating_supply();
++    for(const auto& currency: supply) {
++        j_response[currency.first] = currency.second.substr(0, currency.second.size() - 12);
++    }
++
++    return j_response;
++}
++
++/*
++ * Lets use this json api convention for success and error
++ * https://labs.omniti.com/labs/jsend
++ * This function is here solely for coinmarketcap, in case you confused with the one above.
++ */
++json
++json_circulating_xhv()
 +{
 +    std::string circulation_spply;
 +
@@ -1021,13 +1037,10 @@ index 77a047c..53cb4c3 100644
 +
 +    return circulation_spply.substr(0, circulation_spply.size() - 12);
 +}
-+
-+
-+
+ 
  /*
        * Lets use this json api convention for success and error
-       * https://labs.omniti.com/labs/jsend
-@@ -5809,7 +6062,7 @@ find_our_outputs(
+@@ -5809,7 +6075,7 @@ find_our_outputs(
          //j_data["outputs"] = json::array();
          //json& j_outptus   = j_data["outputs"];
  
@@ -1036,7 +1049,7 @@ index 77a047c..53cb4c3 100644
          {
  
              // get the tx output public key
-@@ -5823,20 +6076,35 @@ find_our_outputs(
+@@ -5823,20 +6089,35 @@ find_our_outputs(
                                tx_pubkey);
  
              // check if generated public key matches the current output's key
@@ -1079,7 +1092,7 @@ index 77a047c..53cb4c3 100644
              {
                  // cointbase txs have amounts in plain sight.
                  // so use amount from ringct, only for non-coinbase txs
-@@ -5875,13 +6143,14 @@ find_our_outputs(
+@@ -5875,13 +6156,14 @@ find_our_outputs(
                  string payment_id_str = get_payment_id_as_string(txd, prv_view_key);
  
                  j_outptus.push_back(json {
@@ -1096,7 +1109,7 @@ index 77a047c..53cb4c3 100644
                  });
              }
  
-@@ -6062,6 +6331,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6062,6 +6344,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
              {"tx_size"               , fmt::format("{:0.4f}", tx_size)},
              {"tx_fee"                , xmreg::xmr_amount_to_str(txd.fee, "{:0.12f}", false)},
              {"tx_fee_micro"          , xmreg::xmr_amount_to_str(txd.fee*1e6, "{:0.4f}", false)},
@@ -1104,7 +1117,7 @@ index 77a047c..53cb4c3 100644
              {"payed_for_kB"          , fmt::format("{:0.12f}", payed_for_kB)},
              {"tx_version"            , static_cast<uint64_t>(txd.version)},
              {"blk_timestamp"         , blk_timestamp},
-@@ -6134,16 +6404,36 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6134,16 +6417,36 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
      vector<vector<uint64_t>> mixin_timestamp_groups;
  
      // make timescale maps for mixins in input
@@ -1146,7 +1159,7 @@ index 77a047c..53cb4c3 100644
  
          // get public keys of outputs used in the mixins that match to the offests
          std::vector<cryptonote::output_data_t> outputs;
-@@ -6162,16 +6452,13 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6162,16 +6465,13 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
                                                    //absolute_offsets,
                                                    //outputs);
              
@@ -1165,7 +1178,7 @@ index 77a047c..53cb4c3 100644
  
              for (auto offset: absolute_offsets)
                  out_msg += ", " + to_string(offset);
-@@ -6187,8 +6474,8 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6187,8 +6487,8 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
          }
  
          inputs.push_back(mstch::map {
@@ -1176,7 +1189,7 @@ index 77a047c..53cb4c3 100644
                  {"input_idx"    , fmt::format("{:02d}", input_idx)},
                  {"mixins"       , mstch::array{}},
                  {"ring_sigs"    , mstch::array{}},
-@@ -6202,9 +6489,9 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6202,9 +6502,9 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
          }
  
  
@@ -1188,7 +1201,7 @@ index 77a047c..53cb4c3 100644
          {
              // if any input has amount equal to zero,
              // it is really an unkown amount
-@@ -6233,14 +6520,14 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6233,14 +6533,14 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
                  // get pair pair<crypto::hash, uint64_t> where first is tx hash
                  // and second is local index of the output i in that tx
                  tx_out_idx = core_storage->get_db()
@@ -1205,7 +1218,7 @@ index 77a047c..53cb4c3 100644
                  );
  
                  cerr << out_msg << endl;
-@@ -6365,7 +6652,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6365,7 +6665,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
      context.emplace("inputs", inputs);
  
      // get indices of outputs in amounts tables
@@ -1214,7 +1227,7 @@ index 77a047c..53cb4c3 100644
  
      try
      {
-@@ -6374,11 +6661,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6374,11 +6674,7 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
  
          if (core_storage->get_db().tx_exists(txd.hash, tx_index))
          {
@@ -1227,7 +1240,7 @@ index 77a047c..53cb4c3 100644
          }
          else
          {
-@@ -6396,8 +6679,16 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6396,8 +6692,16 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
      mstch::array outputs;
  
      uint64_t outputs_xmr_sum {0};
@@ -1246,7 +1259,7 @@ index 77a047c..53cb4c3 100644
      {
  
          // total number of ouputs in the blockchain for this amount
-@@ -6408,26 +6699,55 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
+@@ -6408,26 +6712,55 @@ construct_tx_context(transaction tx, uint16_t with_ring_signatures = 0)
  
          // outputs in tx in them mempool dont have yet global indices
          // thus for them, we print N/A
@@ -1310,7 +1323,7 @@ index 77a047c..53cb4c3 100644
  
      context.emplace("outputs", outputs);
  
-@@ -6536,7 +6856,35 @@ get_tx_details(const transaction& tx,
+@@ -6536,7 +6869,35 @@ get_tx_details(const transaction& tx,
          if (tx.vin.at(0).type() != typeid(txin_gen))
          {
              // get tx fee
@@ -1347,7 +1360,7 @@ index 77a047c..53cb4c3 100644
          }
      }
  
-@@ -6765,11 +7113,27 @@ get_dynamic_per_kb_fee_estimate(uint64_t& fee_estimated)
+@@ -6765,11 +7126,27 @@ get_dynamic_per_kb_fee_estimate(uint64_t& fee_estimated)
  bool
  are_absolute_offsets_good(
          std::vector<uint64_t> const& absolute_offsets,
@@ -1377,7 +1390,7 @@ index 77a047c..53cb4c3 100644
  
      bool offset_too_large {false};
  
-@@ -6783,9 +7147,9 @@ are_absolute_offsets_good(
+@@ -6783,9 +7160,9 @@ are_absolute_offsets_good(
          {
              offset_too_large = true;
              cerr << "Absolute offset (" << o << ") of an output in a key image "
@@ -1389,7 +1402,7 @@ index 77a047c..53cb4c3 100644
                   << " is too large. There are only "
                   << no_outputs << " such outputs!\n";
              continue;
-@@ -6945,23 +7309,19 @@ get_output_key(uint64_t amount, Args&&... args)
+@@ -6945,23 +7322,19 @@ get_output_key(uint64_t amount, Args&&... args)
            amount, std::forward<Args>(args)...);
  }
  
