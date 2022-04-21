@@ -165,13 +165,14 @@ index 8037616..0817ee8 100644
      }
  
      return key_images;
-@@ -937,7 +957,8 @@ decode_ringct(rct::rctSig const& rv,
+@@ -937,7 +957,9 @@ decode_ringct(rct::rctSig const& rv,
              case rct::RCTTypeSimple:
              case rct::RCTTypeBulletproof:
              case rct::RCTTypeBulletproof2:
 -            case rct::RCTTypeCLSAG:                
 +            case rct::RCTTypeCLSAG:
 +            case rct::RCTTypeCLSAGN:
++            case rct::RCTTypeHaven2:
                  amount = rct::decodeRctSimple(rv,
                                                rct::sk2rct(scalar1),
                                                i,
